@@ -436,6 +436,33 @@ const App = () => {
                 </div>
               </div>
 
+              {/* Section 4 */}
+              <SectionTitle icon={BeakerIcon} title="4. Datos de la muestra biológica" />
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <InputField label="4.1 Fecha/Hora Recolección" name="sampleCollectionDateTime" type="datetime-local" value={formData.sampleCollectionDateTime} onChange={handleChange} />
+                  <InputField label="4.2 Fecha/Hora Recepción" name="sampleReceptionDateTime" type="datetime-local" value={formData.sampleReceptionDateTime} onChange={handleChange} />
+                </div>
+
+                <div>
+                   <label className="block text-sm font-bold text-[#024580] mb-2">4.3 Condiciones durante la recolección</label>
+                   <PillGroup 
+                     options={['Ayuno', 'Postprandial', 'Durante tratamiento', 'Antes de tratamiento']} 
+                     selected={formData.collectionConditions} 
+                     onChange={(val) => handlePillChange(val, 'collectionConditions', false)} 
+                   />
+                </div>
+
+                <div>
+                   <label className="block text-sm font-bold text-[#024580] mb-2">4.4 Condiciones de almacenamiento</label>
+                   <PillGroup 
+                     options={['Refrigerada', 'Congelada', 'Temperatura ambiente']} 
+                     selected={formData.storageConditions} 
+                     onChange={(val) => handlePillChange(val, 'storageConditions', false)} 
+                   />
+                </div>
+              </div>
+
               {/* Submit Button */}
               <div className="mt-10 pt-6 border-t border-gray-100">
                 <button
