@@ -59,7 +59,11 @@ const PillGroup = ({
     if (multiple && Array.isArray(selected)) {
       return selected.includes(opt);
     }
-    return selected === opt;
+    // Type guard: ensure selected is not an array before string comparison
+    if (!Array.isArray(selected)) {
+      return selected === opt;
+    }
+    return false;
   };
 
   return (
@@ -170,7 +174,10 @@ const App = () => {
         }
       } else {
         // Toggle logic for single select
-        return { ...prev, [fieldName]: prev[fieldName] === value ? '' : value };
+        const currentVal = prev[fieldName];
+        // Ensure strictly safe string comparison to avoid TS2367
+        const isSame = (typeof currentVal === 'string' && currentVal === value);
+        return { ...prev, [fieldName]: isSame ? '' : value };
       }
     });
   };
