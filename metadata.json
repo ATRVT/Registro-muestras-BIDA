@@ -1,0 +1,5 @@
+{
+  "name": "SmartSheets Form",
+  "description": "A mobile-responsive data entry form that cleans data using Gemini AI before sending to Google Sheets.",
+  "requestFramePermissions": []
+}
