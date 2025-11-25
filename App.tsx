@@ -7,7 +7,8 @@ import {
   UserIcon,
   ClipboardDocumentCheckIcon,
   MapPinIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  ShareIcon
 } from '@heroicons/react/24/solid';
 import { FormData, FormStatus } from './types';
 import { SetupGuide } from './components/SetupGuide';
@@ -41,7 +42,7 @@ const initialData: FormData = {
   storageConditions: ''
 };
 
-// --- Helper Components (Defined outside App to prevent re-renders) ---
+// --- Helper Components ---
 
 const PillGroup = ({ 
   options, 
@@ -135,6 +136,24 @@ const App = () => {
     localStorage.setItem('googleScriptUrl', url);
   };
 
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Formulario Muestras BIDA',
+          text: 'App para recolección de muestras - Cáncer de Mama',
+          url: window.location.href,
+        });
+      } catch (err) {
+        console.log('Error compartiendo:', err);
+      }
+    } else {
+      // Fallback
+      navigator.clipboard.writeText(window.location.href);
+      alert('Enlace copiado al portapapeles. ¡Pégalo en WhatsApp!');
+    }
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -150,7 +169,7 @@ const App = () => {
           return { ...prev, [fieldName]: [...currentArray, value] };
         }
       } else {
-        // Toggle logic for single select: if already selected, clear it.
+        // Toggle logic for single select
         return { ...prev, [fieldName]: prev[fieldName] === value ? '' : value };
       }
     });
@@ -208,13 +227,21 @@ const App = () => {
             <h1 className="text-xl font-bold tracking-tight">Formulario Muestras BIDA</h1>
             <p className="text-blue-200 text-xs">Cáncer de Mama</p>
           </div>
-          {/* Pink settings icon */}
-          <button onClick={() => setShowSetup(true)} className="relative text-[#f878a3] hover:text-white p-2 rounded-full hover:bg-white/10 transition">
-            <Cog6ToothIcon className="w-6 h-6" />
-            {!scriptUrl && (
-              <span className="absolute top-1 right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse border-2 border-[#024580]"></span>
-            )}
-          </button>
+          
+          <div className="flex items-center gap-2">
+            {/* Share Button */}
+            <button onClick={handleShare} className="text-blue-200 hover:text-white p-2 rounded-full hover:bg-white/10 transition" title="Compartir App">
+              <ShareIcon className="w-6 h-6" />
+            </button>
+
+            {/* Settings Icon */}
+            <button onClick={() => setShowSetup(true)} className="relative text-[#f878a3] hover:text-white p-2 rounded-full hover:bg-white/10 transition" title="Configuración">
+              <Cog6ToothIcon className="w-6 h-6" />
+              {!scriptUrl && (
+                <span className="absolute top-1 right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse border-2 border-[#024580]"></span>
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -447,7 +474,7 @@ const App = () => {
             </div>
           )}
         </form>
-        <p className="text-center text-gray-400 text-xs mt-6 mb-12">Sistema de Gestión de Datos Clínicos</p>
+        <p className="text-center text-gray-400 text-xs mt-6 mb-12">Sistema de Gestión de Datos Clínicos v1.1</p>
       </div>
     </div>
   );

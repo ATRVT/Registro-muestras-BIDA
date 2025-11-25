@@ -28,33 +28,35 @@ export const SetupGuide: React.FC<SetupGuideProps> = ({ isOpen, onClose, onSaveU
 
   try {
     var doc = SpreadsheetApp.getActiveSpreadsheet();
-    
     // Usar la primera hoja visible
     var sheet = doc.getSheets()[0];
-    try { sheet.setName('Respuestas'); } catch(e) {} 
-
+    
     var data = JSON.parse(e.postData.contents);
     
-    // --- LÓGICA DE ID INTELIGENTE ---
+    // --- LÓGICA DE ID INTELIGENTE (001-GT-XX) ---
+    
     // 1. Obtener Iniciales del Centro (ej. "San Juan" -> "SJ")
-    var centerName = data.healthCenter || "XX";
-    // Eliminar acentos para evitar errores y tomar iniciales
-    var initials = centerName.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "")
+    var centerName = data.healthCenter || "Indefinido";
+    var initials = centerName.toString()
+      .normalize("NFD").replace(/[\\u0300-\\u036f]/g, "") // Quitar acentos
+      .replace(/[^a-zA-Z0-9 ]/g, "") // Quitar caracteres raros
       .split(" ")
       .map(function(w) { return w.charAt(0).toUpperCase(); })
       .join("")
-      .substring(0, 4); // Máximo 4 letras
+      .substring(0, 4); // Máx 4 letras
+
+    if (initials.length === 0) initials = "XX";
 
     // 2. Calcular Secuencial (001, 002...)
     var lastRow = sheet.getLastRow();
     var nextNum = 1;
 
-    // Si hay datos anteriores, mirar el último ID
+    // Si hay datos anteriores (más allá del encabezado), mirar el último ID
     if (lastRow > 1) {
-      var lastId = sheet.getRange(lastRow, 1).getValue(); // Columna A es ID
+      var lastId = sheet.getRange(lastRow, 1).getValue().toString(); 
       // El formato esperado es NUMERO-GT-LETRAS (ej. 005-GT-HM)
-      var parts = lastId.toString().split("-");
-      // Si el primer trozo es un número, lo usamos. Si no, empezamos en 1.
+      var parts = lastId.split("-");
+      // Si el primer trozo es un número, le sumamos 1
       if (parts.length > 0 && !isNaN(parseInt(parts[0], 10))) {
         nextNum = parseInt(parts[0], 10) + 1;
       }
@@ -67,11 +69,13 @@ export const SetupGuide: React.FC<SetupGuideProps> = ({ isOpen, onClose, onSaveU
     var autoId = seqStr + "-GT-" + initials;
     // --------------------------------
 
+    // Función auxiliar para formatear arrays
     function formatValue(val) {
       if (Array.isArray(val)) return val.join(", ");
       return val || "";
     }
 
+    // Encabezados exactos
     var headers = [
       "ID Registro", "Fecha Ingreso", "Fecha Entrevista", "Entrevistador", 
       "País", "Centro Salud", 
@@ -84,24 +88,44 @@ export const SetupGuide: React.FC<SetupGuideProps> = ({ isOpen, onClose, onSaveU
       "4.3 Cond. Recolección", "4.4 Cond. Almacenamiento"
     ];
 
+    // Si la hoja está vacía, poner encabezados y colores
     if (sheet.getLastRow() === 0) {
        sheet.appendRow(headers);
        var headerRange = sheet.getRange(1, 1, 1, headers.length);
        headerRange.setBackground("#024580").setFontColor("white").setFontWeight("bold");
+       sheet.setFrozenRows(1);
     }
 
+    // Preparar la fila nueva
     var newRow = [
       autoId,
-      new Date(), // Fecha y hora de sistema
-      data.interviewDate, data.interviewerName,
-      data.country, data.healthCenter,
-      data.fullName, data.dob, data.age, data.weight, data.height,
-      data.lastPeriodDate, formatValue(data.comorbidities), data.comorbiditiesOther, data.currentMeds,
-      data.confirmedDiagnosis, formatValue(data.diagnosticMethods), data.diagnosticMethodsOther, data.diagnosisDate,
-      data.clinicalStage, data.histologicalType, data.currentTreatment,
-      formatValue(data.treatmentTypes), data.treatmentOther,
-      data.sampleCollectionDateTime, data.sampleReceptionDateTime,
-      data.collectionConditions, data.storageConditions
+      new Date(), // Fecha de sistema
+      "'" + data.interviewDate, // Comilla simple fuerza texto para evitar cambio de fecha
+      data.interviewerName,
+      data.country, 
+      data.healthCenter,
+      data.fullName, 
+      "'" + data.dob, 
+      data.age, 
+      data.weight, 
+      data.height,
+      "'" + data.lastPeriodDate, 
+      formatValue(data.comorbidities), 
+      data.comorbiditiesOther, 
+      data.currentMeds,
+      data.confirmedDiagnosis, 
+      formatValue(data.diagnosticMethods), 
+      data.diagnosticMethodsOther, 
+      "'" + data.diagnosisDate,
+      data.clinicalStage, 
+      data.histologicalType, 
+      data.currentTreatment,
+      formatValue(data.treatmentTypes), 
+      data.treatmentOther,
+      "'" + data.sampleCollectionDateTime.replace("T", " "), 
+      "'" + data.sampleReceptionDateTime.replace("T", " "),
+      data.collectionConditions, 
+      data.storageConditions
     ];
 
     sheet.appendRow(newRow);
@@ -139,18 +163,21 @@ export const SetupGuide: React.FC<SetupGuideProps> = ({ isOpen, onClose, onSaveU
              <div className="absolute -left-3 top-0 bottom-0 w-0.5 bg-gray-100"></div>
             <div className="flex items-center gap-3">
               <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#f9953c]/20 text-[#f9953c] font-bold text-sm shrink-0 z-10 bg-white">1</span>
-              <h3 className="font-semibold text-[#024580]">Copiar Nuevo Código</h3>
+              <h3 className="font-semibold text-[#024580]">Copiar Código Actualizado</h3>
             </div>
             <p className="text-gray-600 ml-11 text-sm">
-              Este código nuevo genera el ID automáticamente (ej. <code>001-GT-HM</code>). Borra lo anterior en Apps Script y pega esto:
+              Copia todo este bloque y reemplaza lo que tengas en <strong>Google Apps Script</strong>.
             </p>
             <div className="ml-11 mt-2 relative group">
-              <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-xs overflow-x-auto whitespace-pre-wrap font-mono h-48">
+              <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-xs overflow-x-auto whitespace-pre-wrap font-mono h-48 select-all">
                 {scriptCode}
               </pre>
               <button 
-                onClick={() => navigator.clipboard.writeText(scriptCode)}
-                className="absolute top-2 right-2 bg-white/10 hover:bg-white/20 text-white p-2 rounded text-xs backdrop-blur-md flex items-center gap-1 transition"
+                onClick={() => {
+                  navigator.clipboard.writeText(scriptCode);
+                  alert("¡Código copiado al portapapeles!");
+                }}
+                className="absolute top-2 right-2 bg-white/10 hover:bg-white/20 text-white p-2 rounded text-xs backdrop-blur-md flex items-center gap-1 transition cursor-pointer"
               >
                 <ClipboardDocumentIcon className="w-4 h-4" /> Copiar
               </button>
@@ -162,18 +189,18 @@ export const SetupGuide: React.FC<SetupGuideProps> = ({ isOpen, onClose, onSaveU
              <div className="absolute -left-3 top-0 bottom-0 w-0.5 bg-gray-100"></div>
             <div className="flex items-center gap-3">
               <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#f9953c]/20 text-[#f9953c] font-bold text-sm shrink-0 z-10 bg-white">2</span>
-              <h3 className="font-semibold text-[#024580]">¡Crear Nueva Versión!</h3>
+              <h3 className="font-semibold text-[#024580]">IMPORTANTE: Publicar Nueva Versión</h3>
             </div>
             
-            <div className="ml-11 bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
+            <div className="ml-11 bg-red-50 border border-red-200 p-4 rounded-lg">
                 <div className="flex items-start gap-3">
-                    <ExclamationTriangleIcon className="w-6 h-6 text-yellow-600 shrink-0" />
-                    <div className="text-sm text-yellow-800">
-                        <strong>Para que funcione el cambio de ID:</strong><br/>
-                        1. Ve a "Implementar" &gt; "Gestionar implementaciones".<br/>
-                        2. Dale al <strong>lápiz (Editar)</strong>.<br/>
-                        3. Cambia la Versión a <strong>"Nueva versión"</strong>.<br/>
-                        4. Dale a "Implementar".
+                    <ExclamationTriangleIcon className="w-6 h-6 text-red-600 shrink-0" />
+                    <div className="text-sm text-red-800">
+                        <strong>Si no haces esto, los cambios NO funcionarán:</strong><br/><br/>
+                        1. Clic en botón azul <strong>"Implementar"</strong> &gt; <strong>"Gestionar implementaciones"</strong>.<br/>
+                        2. Clic en el icono de <strong>Lápiz (Editar)</strong>.<br/>
+                        3. En "Versión", selecciona: <strong>"Nueva versión"</strong>.<br/>
+                        4. Clic en <strong>"Implementar"</strong> o "Listo".
                     </div>
                 </div>
             </div>
@@ -183,10 +210,10 @@ export const SetupGuide: React.FC<SetupGuideProps> = ({ isOpen, onClose, onSaveU
           <div className="space-y-2">
             <div className="flex items-center gap-3">
               <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#30e674]/20 text-[#30e674] font-bold text-sm shrink-0">3</span>
-              <h3 className="font-semibold text-[#024580]">URL (No cambia)</h3>
+              <h3 className="font-semibold text-[#024580]">Conectar la App</h3>
             </div>
             <p className="text-gray-600 ml-11 text-sm">
-              Si lo haces bien, la URL sigue siendo la misma. Si Google te da una nueva, pégala aquí:
+              Copia la "URL de la aplicación web" que te da Google y pégala aquí:
             </p>
             <div className="ml-11 mt-2">
               <div className="flex items-center gap-2">
@@ -210,7 +237,7 @@ export const SetupGuide: React.FC<SetupGuideProps> = ({ isOpen, onClose, onSaveU
             onClick={handleSave}
             className="px-8 py-3 bg-[#024580] hover:bg-[#024580]/90 text-white font-semibold rounded-xl transition-colors shadow-lg flex items-center gap-2"
           >
-            Guardar Configuración
+            Guardar y Conectar
           </button>
         </div>
       </div>
