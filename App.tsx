@@ -13,6 +13,10 @@ import {
 import { FormData, FormStatus } from './types';
 import { SetupGuide } from './components/SetupGuide';
 
+// --- CONFIGURACIÓN DE URL ---
+// URL fija para conexión automática. 
+const GOOGLE_SCRIPT_URL_FIJA = "https://script.google.com/macros/s/AKfycbxRgmget5Z_u6D10X7cFF4zFVDLmkrvhe6bhB9_XAXY36_dZbta9HcfjTGlAUneSe2NZw/exec";
+
 const initialData: FormData = {
   interviewDate: new Date().toISOString().split('T')[0],
   interviewerName: '',
@@ -128,12 +132,19 @@ const App = () => {
   const [status, setStatus] = useState<FormStatus>(FormStatus.IDLE);
   const [showSetup, setShowSetup] = useState<boolean>(false);
   const [formData, setFormData] = useState<FormData>(initialData);
-  const [scriptUrl, setScriptUrl] = useState<string>('');
+  
+  // Inicializamos directamente con la URL fija si existe
+  const [scriptUrl, setScriptUrl] = useState<string>(GOOGLE_SCRIPT_URL_FIJA || '');
   const [errorMsg, setErrorMsg] = useState<string>('');
 
   useEffect(() => {
-    const savedUrl = localStorage.getItem('googleScriptUrl');
-    if (savedUrl) setScriptUrl(savedUrl);
+    // Prioridad: URL Fija > Local Storage
+    if (GOOGLE_SCRIPT_URL_FIJA) {
+      setScriptUrl(GOOGLE_SCRIPT_URL_FIJA);
+    } else {
+      const savedUrl = localStorage.getItem('googleScriptUrl');
+      if (savedUrl) setScriptUrl(savedUrl);
+    }
   }, []);
 
   const handleSaveUrl = (url: string) => {
@@ -186,9 +197,10 @@ const App = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Si no hay URL fija ni manual, mostrar aviso
     if (!scriptUrl) {
       setShowSetup(true);
-      alert("¡Atención! Primero necesitas conectar la App con Google Sheets. Pega la URL en la configuración.");
+      alert("¡Atención! Falta conectar con Google Sheets.");
       return;
     }
 
@@ -255,7 +267,7 @@ const App = () => {
 
       <div className="max-w-4xl mx-auto px-4 mt-6">
         
-        {/* Connection Warning */}
+        {/* Connection Warning - Solo se muestra si NO hay URL configurada */}
         {!scriptUrl && (
           <div className="bg-yellow-50 border-l-4 border-[#f9953c] p-4 mb-6 rounded-r-lg shadow-sm">
             <div className="flex items-center">
@@ -266,6 +278,15 @@ const App = () => {
                 </p>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Connection Success Badge (Visible solo si está conectado) */}
+        {scriptUrl && (
+          <div className="flex justify-end mb-2 px-2">
+             <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                ✓ Conectado
+             </span>
           </div>
         )}
 
