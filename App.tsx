@@ -61,7 +61,8 @@ const PillGroup = ({
     }
     // Type guard: ensure selected is not an array before string comparison
     if (!Array.isArray(selected)) {
-      return selected === opt;
+      // Uso de 'as any' para evitar error TS2367 estricto
+      return (selected as any) === opt;
     }
     return false;
   };
@@ -175,8 +176,8 @@ const App = () => {
       } else {
         // Toggle logic for single select
         const currentVal = prev[fieldName];
-        // Ensure strictly safe string comparison to avoid TS2367
-        const isSame = (typeof currentVal === 'string' && currentVal === value);
+        // Ensure strictly safe string comparison to avoid TS2367 using 'as any'
+        const isSame = (typeof currentVal === 'string' && (currentVal as any) === value);
         return { ...prev, [fieldName]: isSame ? '' : value };
       }
     });
@@ -435,40 +436,13 @@ const App = () => {
                 </div>
               </div>
 
-              {/* Section 4 (Previously 5) */}
-              <SectionTitle icon={BeakerIcon} title="4. Datos de la muestra biológica" />
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                   <InputField label="4.1 Fecha y hora de recolección de la muestra" name="sampleCollectionDateTime" type="datetime-local" value={formData.sampleCollectionDateTime} onChange={handleChange} />
-                   <InputField label="4.2 Fecha y hora de recepción de muestra" name="sampleReceptionDateTime" type="datetime-local" value={formData.sampleReceptionDateTime} onChange={handleChange} />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-bold text-[#024580] mb-2">4.3 Condiciones durante la recolección</label>
-                  <PillGroup 
-                    options={['Ayuno', 'Postprandial', 'Durante tratamiento', 'Antes de tratamiento']} 
-                    selected={formData.collectionConditions} 
-                    onChange={(val) => handlePillChange(val, 'collectionConditions', false)} 
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-[#024580] mb-2">4.4 Condiciones de almacenamiento</label>
-                  <PillGroup 
-                    options={['Refrigerada', 'Congelada', 'Temperatura ambiente']} 
-                    selected={formData.storageConditions} 
-                    onChange={(val) => handlePillChange(val, 'storageConditions', false)} 
-                  />
-                </div>
-              </div>
-
               {/* Submit Button */}
               <div className="mt-10 pt-6 border-t border-gray-100">
                 <button
                   type="submit"
                   disabled={status === FormStatus.SENDING}
                   className={`w-full py-4 rounded-xl font-bold text-white shadow-xl shadow-[#f9953c]/20 flex items-center justify-center gap-3 transition-all transform active:scale-95
-                    ${status === FormStatus.IDLE || status === FormStatus.ERROR ? 'bg-[#f9953c] hover:bg-[#e8862d]' : 'bg-gray-400 cursor-not-allowed'}`}
+                    ${status === FormStatus.IDLE ? 'bg-[#f9953c] hover:bg-[#e8862d]' : 'bg-gray-400 cursor-not-allowed'}`}
                 >
                   {status !== FormStatus.SENDING ? (
                     <><span>Guardar Ficha</span><PaperAirplaneIcon className="w-5 h-5" /></>
